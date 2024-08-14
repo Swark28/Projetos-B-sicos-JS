@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ping-Pong</title>
+    <style>
+        * {
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #286047;
+        }
+
+        canvas {
+            background-color: #286047;
+        }
+    </style>
+</head>
+<body>
+    <canvas></canvas>
+    <script>
+        const canvasE1 = document.querySelector("canvas");
+        const canvasCtx = canvasE1.getContext("2d");
+        const gapX = 10;
+
+        const field = {
+            w: window.innerWidth,
+            h: window.innerHeight,
+            draw: function() {
+                // Fundo (grama)
+                canvasCtx.fillStyle = "#286047";
+                canvasCtx.fillRect(0, 0, this.w, this.h);
+            }
+        };
+
+        const line = {
+            w: 15,
+            h: field.h,
+            draw: function() {
+                // Desenho da linha central
+                canvasCtx.fillStyle = "#FFFFFF";
+                canvasCtx.fillRect(field.w / 2 - this.w / 2, 0, this.w, this.h);
+            }
+        };
+
+        const leftPaddle = {
+            x: gapX,
+            y: 240,
+            w: line.w,
+            h: 200,
+            dy: 0,
+            speed: 10,
+            draw: function() {
+                // Desenho da raquete esquerda
+                canvasCtx.fillStyle = "#FFFFFF";
+                canvasCtx.fillRect(this.x, this.y, this.w, this.h);
+            },
+            move: function() {
+                this.y += this.dy;
+
+                // Limita o movimento para dentro do campo
+                if (this.y < 0) this.y = 0;
+                if (this.y + this.h > field.h) this.y = field.h - this.h;
+            }
+        };
+
+        const rightPaddle = {
+            x: field.w - line.w - gapX,
+            y: 240,
+            w: line.w,
+            h: 200,
+            dy: 0,
+            speed: 10,
+            draw: function() {
+                // Desenho da raquete direita
+                canvasCtx.fillStyle = "#FFFFFF";
+                canvasCtx.fillRect(this.x, this.y, this.w, this.h);
+            },
+            move: function() {
+                this.y += this.dy;
+
+                // Limita o movimento para dentro do campo
+                if (this.y < 0) this.y = 0;
+                if (this.y + this.h > field.h) this.y = field.h - this.h;
+            }
+        };
+
+        const ball = {
+            x: field.w / 2,
+            y: field.h / 2,
+            r: 20,
+            speedX: 7,  // Velocidade horizontal
+            speedY: 7,  // Velocidade vertical
+            draw: function() {
+                // Desenho da bola
+                canvasCtx.fillStyle = "#FFFFFF";
+                canvasCtx.beginPath();
+                canvasCtx.arc(this.x, this.y, this.r, 0, 2 * Math.PI, false);
+                canvasCtx.fill();
+            },
+            move: function() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+
+                // Verificação de colisão com as paredes superior e inferior
+                if (this.y - this.r <= 0 || this.y + this.r >= field.h) {
+                    this.speedY *= -1;  // Inverte a direção vertical
+                }
+
+                // Verificação de colisão com as raquetes
+                if (this.x - this.r <= leftPaddle.x + leftPaddle.w && this.y >= leftPaddle.y && this.y <= leftPaddle.y + leftPaddle.h) {
+                    this.speedX *= -1;  // Inverte a direção horizontal
+                    this.x = leftPaddle.x + leftPaddle.w + this.r;  // Ajusta a posição da bola para não colidir repetidamente
+                }
+
+                if (this.x + this.r >= rightPaddle.x && this.y >= rightPaddle.y && this.y <= rightPaddle.y + rightPaddle.h) {
+                    this.speedX *= -1;  // Inverte a direção horizontal
+                    this.x = rightPaddle.x - this.r;  // Ajusta a posição da bola para não colidir repetidamente
+                }
+
+                // Verificação de pontos
+                if (this.x - this.r <= 0) {
+                    rightScore.increment();  // Ponto para o jogador da direita
+                    this.reset();
+                }
+
+                if (this.x + this.r >= field.w) {
+                    leftScore.increment();  // Ponto para o jogador da esquerda
+                    this.reset();
+                }
+            },
+            reset: function() {
+                this.x = field.w / 2;
+                this.y = field.h / 2;
+                this.speedX *= -1;  // Inverte a direção horizontal para o próximo ponto
+            }
+        };
+
+        const leftScore = {
+            value: 0,
+            x: field.w / 4,
+            y: 100,
+            increment: function() {
+                this.value++;
+            },
+            draw: function() {
+                canvasCtx.font = "50px Arial";
+                canvasCtx.fillStyle = "#FFFFFF";
+                canvasCtx.fillText(this.value, this.x, this.y);
+            }
+        };
+
+        const rightScore = {
+            value: 0,
+            x: 3 * field.w / 4,
+            y: 100,
+            increment: function() {
+                this.value++;
+            },
+            draw: function() {
+                canvasCtx.font = "50px Arial";
+                canvasCtx.fillStyle = "#FFFFFF";
+                canvasCtx.fillText(this.value, this.x, this.y);
+            }
+        };
+
+        function setup() {
+            canvasE1.width = field.w;
+            canvasE1.height = field.h;
+        }
+
+        function draw() {
+            field.draw();
+            line.draw();
+            leftPaddle.draw();
+            rightPaddle.draw();
+            ball.draw();
+            leftScore.draw();
+            rightScore.draw();
+        }
+
+        function animate() {
+            canvasCtx.clearRect(0, 0, field.w, field.h);  // Limpa o quadro anterior
+            leftPaddle.move();  // Move a raquete esquerda
+            rightPaddle.move();  // Move a raquete direita
+            ball.move();  // Move a bola
+            draw();  // Desenha o novo quadro
+            requestAnimationFrame(animate);  // Chama a próxima animação
+        }
+
+        window.addEventListener("keydown", function(e) {
+            // Controle da raquete esquerda (W e S)
+            if (e.key === "w" || e.key === "W") leftPaddle.dy = -leftPaddle.speed;
+            if (e.key === "s" || e.key === "S") leftPaddle.dy = leftPaddle.speed;
+
+            // Controle da raquete direita (Setas para cima e para baixo)
+            if (e.key === "ArrowUp") rightPaddle.dy = -rightPaddle.speed;
+            if (e.key === "ArrowDown") rightPaddle.dy = rightPaddle.speed;
+        });
+
+        window.addEventListener("keyup", function(e) {
+            // Parar a raquete esquerda (W e S)
+            if (e.key === "w" || e.key === "W" || e.key === "s" || e.key === "S") leftPaddle.dy = 0;
+
+            // Parar a raquete direita (Setas para cima e para baixo)
+            if (e.key === "ArrowUp" || e.key === "ArrowDown") rightPaddle.dy = 0;
+        });
+
+        setup();
+        animate();
+    </script>
+</body>
+</html>
